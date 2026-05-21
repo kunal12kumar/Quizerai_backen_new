@@ -1,0 +1,14 @@
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String
+
+from app.database.base import Base, TimestampMixin
+
+
+class SchoolAdmin(Base, TimestampMixin):
+    __tablename__ = "school_admins"
+
+    school_id = Column(Integer, ForeignKey("schools.id"), nullable=False, index=True)
+    email = Column(String(255), unique=True, nullable=False, index=True)
+    hashed_password = Column(String(255), nullable=False)
+    full_name = Column(String(255), nullable=False)
+    phone = Column(String(20), nullable=True)
+    is_active = Column(Boolean, default=True)
