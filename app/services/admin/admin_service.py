@@ -9,8 +9,8 @@ from app.core.security import (
     verify_password,
     verify_password_reset_token,
 )
-from app.models.admin.admin import GlobalAdmin
-from app.schemas.admin.admin import GlobalAdminCreate, GlobalAdminUpdate, LoginRequest
+from app.models.users import GlobalAdmin
+from app.schemas.users import GlobalAdminCreate, GlobalAdminUpdate, LoginRequest
 
 
 class AdminService:
@@ -80,7 +80,7 @@ class AdminService:
         admin = db.query(GlobalAdmin).filter(GlobalAdmin.email == email).first()
         if admin:
             token = generate_password_reset_token(email)
-            # TODO: send token via email using notification service
+            # TODO: send token via email service
             print(f"[DEV] Password reset token for {email}: {token}")
 
     @staticmethod

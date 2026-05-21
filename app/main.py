@@ -2,31 +2,37 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.core.exceptions import register_exception_handlers
+from app.core.logging import configure_logging
 from app.core.security import hash_password
-from app.database.connection import engine, SessionLocal
+from app.database.session import engine, SessionLocal
 from app.database.base import Base
-from app.middleware.middleware import register_middleware
+from app.middleware.request_id import RequestIDMiddleware
+from app.middleware.logging import RequestLoggingMiddleware
 
-# Import all models so SQLAlchemy registers them before create_all
-import app.models.admin.admin          # noqa: F401
-import app.models.school.school        # noqa: F401
-import app.models.school.admin         # noqa: F401
-import app.models.school.teacher       # noqa: F401
-import app.models.school.student       # noqa: F401
-import app.models.school.classroom     # noqa: F401
-import app.models.school.quiz          # noqa: F401
+# Register all models with SQLAlchemy before create_all
+import app.models.users          # noqa: F401
+import app.models.institution    # noqa: F401
+import app.models.classroom      # noqa: F401
+import app.models.quiz           # noqa: F401
+import app.models.assignment     # noqa: F401
+import app.models.ai_session     # noqa: F401
+import app.models.notification   # noqa: F401
 
-from app.models.admin.admin import GlobalAdmin
+from app.models.users import GlobalAdmin
 
-# Routers
-from app.routers.admin import auth as admin_auth_router
-from app.routers.admin import admin as admin_router
-from app.routers.school import school as school_router
-from app.routers.school import classroom as classroom_router
-from app.routers.school import learn as learn_router
-from app.routers.school import quiz as quiz_router
-from app.routers.ai import ai as ai_router
+# Routes
+from app.api.routes import auth as auth_router
+from app.api.routes.admin import admins as admin_router
+from app.api.routes.school import school as school_router
+from app.api.routes.teacher import teacher as teacher_router
+from app.api.routes.student import student as student_router
+from app.api.routes import quiz as quiz_router
+from app.api.routes import assignment as assignment_router
+from app.api.routes.ai import ai as ai_router
+from app.api.routes import notifications as notifications_router
 
+configure_logging(debug=settings.DEBUG)
 Base.metadata.create_all(bind=engine)
 
 
@@ -60,23 +66,21 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(RequestIDMiddleware)
 
-register_middleware(app)
+register_exception_handlers(app)
 
-app.include_router(admin_auth_router.router, prefix="/api/v1/admin/auth",  tags=["Admin Auth"])
-app.include_router(admin_router.router,      prefix="/api/v1/admin",       tags=["Admin"])
-app.include_router(school_router.router,     prefix="/api/v1/school",      tags=["School"])
-app.include_router(classroom_router.router,  prefix="/api/v1/school/classroom", tags=["Classroom"])
-app.include_router(learn_router.router,      prefix="/api/v1/school/learn", tags=["Learn"])
-app.include_router(quiz_router.router,       prefix="/api/v1/school/quiz",  tags=["Quiz"])
-app.include_router(ai_router.router,         prefix="/api/v1/ai",           tags=["AI Services"])
+app.include_router(auth_router.router,          prefix="/api/v1/auth",          tags=["Auth"])
+app.include_router(admin_router.router,         prefix="/api/v1/admin",         tags=["Admin"])
+app.include_router(school_router.router,        prefix="/api/v1/school",        tags=["School"])
+app.include_router(teacher_router.router,       prefix="/api/v1/teacher",       tags=["Teacher"])
+app.include_router(student_router.router,       prefix="/api/v1/student",       tags=["Student"])
+app.include_router(quiz_router.router,          prefix="/api/v1/quiz",          tags=["Quiz"])
+app.include_router(assignment_router.router,    prefix="/api/v1/assignment",    tags=["Assignment"])
+app.include_router(ai_router.router,            prefix="/api/v1/ai",            tags=["AI"])
+app.include_router(notifications_router.router, prefix="/api/v1/notifications", tags=["Notifications"])
 
 
 @app.get("/", tags=["Health"])

@@ -1,0 +1,3 @@
+# TODO: implement S3 presigned URL generation
+# import boto3
+# def generate_presigned_url(bucket: str, key: str, expires_in: int = 3600) -> str: ...
